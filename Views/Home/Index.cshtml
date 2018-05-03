@@ -1,0 +1,285 @@
+﻿
+@{
+    ViewBag.Title = "My Events";
+}
+
+<h2>Index</h2>
+
+<div id="modal" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title"><span id="eventTitle"></span></h4>
+            </div>
+            <div class="modal-body">
+                <p id="pDetails"></p>
+                <button id="btnDelete" class="btn btn-default btn-sm pull-right">
+                    <span class="glyphicon glyphicon-remove"></span>Remove
+                </button>
+                <button id="btnEdit" class="btn btn-default btn-sm pull-right">
+                    <span class="glyphicon glyphicon-pencil"></span>Edit
+                </button>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div id="modalSave" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">Save Event</h4>
+            </div>
+            <div class="modal-body">
+                <form class="col-md-12 form-horizontal">
+                    <input type="hidden" id="hdEventID" value="0" />
+                    <div class="form-group">
+                        <label>Subject</label>
+                        <input type="text" id="txtSubject" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label>Start</label>
+                        <div class="input-group date" id="dtp1">
+                            <input type="text" id="txtStart" class="form-control" />
+                            <span class="input-group-addon">
+                                <span class="glyphicon glyphicon-calendar"></span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="checkbox">
+                            <label><input type="checkbox" id="ckhIsFullDay" checked="checked" />Is full day event?</label>
+                        </div>
+                    </div>
+                    <div class="form-group" id="divEndDate" style="display:none;">
+                        <label>End</label>
+                        <div class="input-group date" id="dtp2">
+                            <input type="text" id="txtEnd" class="form-control" />
+                            <span class="input-group-addon">
+                                <span class="glyphicon glyphicon-calendar"></span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea id="txtDescription" rows="3" class="form-control"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Theme Color</label>
+                        <select id="ddThemeColor" class="form-control">
+                            <option value="">Default</option>
+                            <option value="red">Red</option>
+                            <option value="blue">Blue</option>
+                            <option value="black">Black</option>
+                            <option value="green">Green</option>
+                        </select>
+                    </div>
+                    <button type="button" id="btnSave" class="btn btn-success">Save</button>
+                    <button type="button" class="btn btn-danger" data-dismiss="modal">Cancel</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div id="calendar"></div>
+
+<link href="//cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.css" rel="stylesheet"/>
+<link href="//cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.print.css" rel="stylesheet" media="print"/>
+<link href="//cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.47/css/bootstrap-datetimepicker.min.css" rel="stylesheet" />
+
+@section Scripts{
+    <script src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.1/moment.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.47/js/bootstrap-datetimepicker.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            var events = [];
+            var selectedEvt = null;
+
+            loadCalendar();
+
+            function loadCalendar() {
+                var events = [];
+                $.ajax({
+                    type: "GET",
+                    url: "/home/getEvents",
+                    success: function (data) {
+                        $.each(data, function (i, v) {
+                            events.push({
+                                eventID: v.EventID,
+                                title: v.Subject,
+                                description: v.Description,
+                                start: moment(v.Start),
+                                end: v.End != null ? moment(v.End) : null,
+                                color: v.ThemeColor,
+                                allDay: v.IsFullDay
+                            })
+                        });
+
+                        generateCalendar(events);
+                    },
+                    error: function (error) {
+                        alert(error);
+                    }
+                });
+            }
+
+            function generateCalendar(events) {
+                $('#calendar').fullCalendar('destroy');
+                $('#calendar').fullCalendar({
+                    contentHeight: 400,
+                    defaultDate: new Date(),
+                    timeFormat: 'h(:mm)a',
+                    header: {
+                        left: 'prev,next,today',
+                        center: 'title',
+                        right: 'month,basicDay,basicWeek,agenda'
+                    },
+                    eventLimit: true,
+                    eventColor: '#378006',
+                    events: events,
+                    eventClick: function (callEvent, JsEvent, view) {
+                        selectedEvt = callEvent;
+                        $('#modal #eventTitle').text(callEvent.title);
+                        var $description = $('<div/>');
+                        $description.append($('</p>').html('<b>Start</b>' + callEvent.start.format('DD-MMM-YYYY')));
+                        if (callEvent.end != null) {
+                            $description.append($('</p>').html('<b>Endt</b>' + callEvent.end.format('DD-MMM-YYYY')));
+                        }
+                        $description.append($('</p>').html('<b>Description</b>' + callEvent.description));
+                        $('#modal #pDetails').empty().html($description);
+                        $('#modal').modal();
+                    },
+                    selectable: true,
+                    select: function (start, end) {
+                        selectedEvt = {
+                            eventID: 0,
+                            title: '',
+                            description: '',
+                            start: start,
+                            end: end,
+                            color: '',
+                            allDay: false
+                        };
+                        loadAddOrEditForm();
+                        $("calendar").fullCalendar('unselect');
+                    }
+                })
+            }
+
+            function loadAddOrEditForm() {
+                if (selectedEvt != null) {
+                    $('#hdEventID').val(selectedEvt.eventID);
+                    $('#txtSubject').val(selectedEvt.title);
+                    $('#txtStart').val(selectedEvt.start.format('DD/MM/YYYY HH:mm A'));
+                    $('#ckhIsFullDay').prop('checked', selectedEvt.IsFullDay || false);
+                    $('#ckhIsFullDay').change();
+                    $('#txtEnd').val(selectedEvt.end != null ? selectedEvt.end.format('DD/MM/YYYY HH:mm A') : '');
+                    $('#txtDescription').val(selectedEvt.description);
+                    $('#ddThemeColor').val(selectedEvt.color);
+                }
+                $('#modal').modal('hide');
+                $('#modalSave').modal();
+            }
+
+            function saveData(data) {
+                $.ajax({
+                    type: "POST",
+                    url: "/home/SaveEvent",
+                    data: data,
+                    success: function (data) {
+                        if (data.status) {
+                            loadCalendar();
+                            $('#modalSave').modal('hide');
+                        }
+                    },
+                    error: function () {
+                        alert('error');
+                    }
+                })
+            }
+
+            $('#btnSave').click(function () {
+                //basic validations
+                if ($("#txtSubject").val().trim() == "") {
+                    alert("Subject is required");
+                    return;
+                }
+
+                if ($("#txtStart").val().trim() == "") {
+                    alert("Start date is required");
+                    return;
+                }
+
+                if ($('#ckhIsFullDay').is(':checked') == false && $("#txtEnd").val().trim() == "") {
+                    alert("End date is required");
+                    return;
+                } else {
+                    var startDate = moment($('#txtStart').val(), 'DD/MM/YYYY HH:mm A').toDate();
+                    var endDate = moment($('#txtEnd').val(), 'DD/MM/YYYY HH:mm A').toDate();
+
+                    if (endDate < startDate) {
+                        alert('Inválid End date!');
+                        return;
+                    }
+                }
+
+                var data = {
+                    EventID: $('#hdEventID').val(),
+                    Subject: $('#txtSubject').val().trim(),
+                    Start: $('#txtStart').val().trim(),
+                    End: $('#chkIsFullFay').is(':checked') ? null : $('#txtEnd').val().trim(),
+                    Description: $('#txtDescription').val(),
+                    ThemeColor: $('#ddThemeColor').val()
+                }
+
+                saveData(data);
+            });
+
+            $('#btnEdit').click(function () {
+                loadAddOrEditForm();
+            });
+
+            $('#btnDelete').click(function () {
+                if (selectedEvt != null && confirm("Are you sure?")) {
+                    $.ajax({
+                        type: "POST",
+                        url: "/home/DeleteEvent",
+                        data: { 'eventID': selectedEvt.eventID },
+                        success: function (data) {
+                            if (data.status) {
+                                loadCalendar();
+                                $('#modal').modal('hide');
+                            }
+                        },
+                        error: function () {
+                            alert('error');
+                        }
+                    })
+                }
+            });
+
+            $('#dtp1,#dtp2').datetimepicker({
+                format: 'DD/MM/YYYY HH:mm A'
+            });
+
+            $('#ckhIsFullDay').change(function () {
+                if ($(this).is(':checked')) {
+                    $('#divEndDate').hide();
+                }
+                else {
+                    $('#divEndDate').show();
+                }
+            });
+        })
+    </script>
+}
