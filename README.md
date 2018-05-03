@@ -1,13 +1,13 @@
 # calendar-web-application  By Rangel Netto.
 
-> simple calendar web applicationchallenge
+> simple calendar web application challenge.
 
-##Visual Studio 2017
-##Sql server 2017
-##Asp.Net Mvc 5
-##Entity Framework (Code first)
-##Jquery/Bootstrap
-##FullCalendar
+# #Visual Studio 2017
+## Sql server 2017
+## Asp.Net Mvc 5
+## Entity Framework (Code first)
+## Jquery/Bootstrap
+## FullCalendar
 
 ## Build Setup
 
